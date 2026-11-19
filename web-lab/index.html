@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>네트워크 실습 테스트</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --panel: #ffffff; --text: #1d2330; --muted: #5f6b7a; --line: #dfe3ea;
+    --accent: #2f6fde; --accent-text: #ffffff; --pass: #1f8a4c; --fail: #c7372f; --warn: #b7791f;
+    --code-bg: #f1f3f6; --nav-active: #e8effc;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14171c; --panel: #1c2027; --text: #e4e8ee; --muted: #9aa4b2; --line: #2e343e;
+      --accent: #6b9cf0; --accent-text: #0f1218; --pass: #4cc386; --fail: #f07068; --warn: #e3b04b;
+      --code-bg: #12151a; --nav-active: #24314a;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.6 "Malgun Gothic", system-ui, sans-serif; }
+  header { display: flex; align-items: center; gap: 12px; padding: 12px 20px; background: var(--panel); border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 2; }
+  header h1 { font-size: 17px; margin: 0; flex: 1; }
+  .layout { display: grid; grid-template-columns: 250px 1fr; min-height: calc(100vh - 53px); }
+  nav { border-right: 1px solid var(--line); background: var(--panel); padding: 12px 8px; }
+  nav button { display: flex; width: 100%; gap: 8px; align-items: center; text-align: left; border: 0; background: none; color: var(--text); padding: 8px 10px; border-radius: 6px; cursor: pointer; font: inherit; }
+  nav button.active { background: var(--nav-active); font-weight: 600; }
+  nav .num { font-variant-numeric: tabular-nums; color: var(--muted); width: 22px; }
+  nav .dots { margin-left: auto; display: flex; gap: 3px; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--line); }
+  .dot.pass { background: var(--pass); } .dot.fail { background: var(--fail); } .dot.warn { background: var(--warn); }
+  main { padding: 24px 32px 60px; max-width: 1100px; min-width: 0; } /* min-width: 0이 있어야 넓은 표가 페이지 대신 자기 상자 안에서 스크롤된다 */
+  h2 { margin: 0 0 4px; font-size: 22px; }
+  .goal { color: var(--muted); margin: 0 0 16px; }
+  .folder { font-family: Consolas, monospace; font-size: 13px; color: var(--muted); }
+  .box { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 14px 18px; margin: 14px 0; }
+  .box h3 { margin: 0 0 6px; font-size: 15px; }
+  .box ul { margin: 4px 0; padding-left: 20px; }
+  .test-head { display: flex; align-items: center; gap: 12px; }
+  .test-head h3 { margin: 0; flex: 1; }
+  .secs { color: var(--muted); font-size: 13px; }
+  button.run, button.stop, button.nav-btn { border: 1px solid var(--accent); background: var(--accent); color: var(--accent-text); border-radius: 6px; padding: 6px 14px; font: inherit; cursor: pointer; }
+  button.stop { background: transparent; color: var(--fail); border-color: var(--fail); }
+  button.nav-btn { background: transparent; color: var(--accent); }
+  button:disabled { opacity: .5; cursor: wait; }
+  .badge { display: inline-block; padding: 1px 10px; border-radius: 99px; font-size: 13px; font-weight: 600; color: #fff; }
+  .badge.pass { background: var(--pass); } .badge.fail { background: var(--fail); }
+  .checks { list-style: none; padding: 0; margin: 8px 0; }
+  .checks li { padding: 3px 0; }
+  .checks .mark { display: inline-block; width: 22px; font-weight: 700; }
+  .checks .pass .mark { color: var(--pass); } .checks .fail .mark { color: var(--fail); } .checks .warn .mark { color: var(--warn); }
+  .checks .detail { color: var(--muted); font-size: 13px; margin-left: 6px; overflow-wrap: anywhere; }
+  .error { white-space: pre-wrap; color: var(--fail); background: var(--code-bg); padding: 10px; border-radius: 6px; font-family: Consolas, monospace; font-size: 13px; }
+  .table-wrap { overflow-x: auto; margin: 6px 0 14px; }
+  table { border-collapse: collapse; font-family: Consolas, "Malgun Gothic", monospace; font-size: 12.5px; width: 100%; }
+  th, td { border-bottom: 1px solid var(--line); padding: 3px 8px; text-align: left; vertical-align: top; white-space: nowrap; }
+  td:last-child { white-space: normal; }
+  th { background: var(--code-bg); position: sticky; top: 0; }
+  .filter { font-family: Consolas, monospace; font-size: 12px; color: var(--muted); }
+  details { margin: 6px 0; }
+  summary { cursor: pointer; }
+  pre { background: var(--code-bg); padding: 10px; border-radius: 6px; overflow-x: auto; font-size: 12.5px; margin: 6px 0; white-space: pre-wrap; word-break: break-all; }
+  .cmd { font-family: Consolas, monospace; font-size: 13px; color: var(--accent); }
+  textarea { width: 100%; min-height: 90px; font-family: Consolas, monospace; font-size: 12.5px; background: var(--code-bg); color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 8px; }
+  select { font: inherit; background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 4px; }
+  .pager { display: flex; justify-content: space-between; margin-top: 24px; }
+  .notice { background: var(--nav-active); border-radius: 8px; padding: 10px 14px; font-size: 14px; }
+  #stopped { position: fixed; inset: 0; background: var(--bg); display: none; align-items: center; justify-content: center; text-align: center; z-index: 5; padding: 16px; }
+  @media (max-width: 760px) {
+    .layout { grid-template-columns: 1fr; }
+    nav { border-right: 0; border-bottom: 1px solid var(--line); display: flex; overflow-x: auto; }
+    nav button { width: auto; white-space: nowrap; }
+    main { padding: 16px; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>HTTP·네트워크 실습 테스트</h1>
+  <span id="status" class="secs"></span>
+  <button class="stop" id="shutdown">서버 종료</button>
+</header>
+<div class="layout">
+  <nav id="nav"></nav>
+  <main id="main"><p>불러오는 중…</p></main>
+</div>
+<div id="stopped">
+  <div>
+    <h2>서버가 종료됐습니다</h2>
+    <p id="stopped-detail"></p>
+    <p>이 탭은 닫아도 됩니다. 다시 하려면 터미널에서 <code>python web-lab\server.py</code></p>
+  </div>
+</div>
+<script>
+const state = { chapters: [], current: 0, results: {} };
+const STORE = "web-lab-results";
+try { state.results = JSON.parse(localStorage.getItem(STORE) || "{}"); } catch (e) { state.results = {}; }
+
+function save() {
+  // 결과 요약(통과 여부)만 이 브라우저에 기억한다. 실패해도 화면에는 영향 없음.
+  const summary = {};
+  for (const [id, r] of Object.entries(state.results)) summary[id] = { ok: r.ok, seconds: r.seconds, checks: r.checks, error: r.error, steps: [], tables: [], look: r.look, summaryOnly: true };
+  try { localStorage.setItem(STORE, JSON.stringify(summary)); } catch (e) { /* 저장 못 해도 진행 */ }
+}
+
+function el(tag, attrs = {}, ...children) {
+  const node = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (k === "class") node.className = v;
+    else if (k.startsWith("on")) node.addEventListener(k.slice(2), v);
+    else node.setAttribute(k, v);
+  }
+  for (const c of children.flat()) if (c != null) node.append(c instanceof Node ? c : document.createTextNode(String(c)));
+  return node;
+}
+
+function testStatus(id) {
+  const r = state.results[id];
+  if (!r) return "";
+  if (!r.ok) return "fail";
+  return r.checks.some(c => c.status === "warn") ? "warn" : "pass";
+}
+
+function renderNav() {
+  const nav = document.getElementById("nav");
+  nav.replaceChildren(...state.chapters.map((c, i) => el("button",
+    { class: i === state.current ? "active" : "", onclick: () => show(i) },
+    el("span", { class: "num" }, c.id), c.title,
+    el("span", { class: "dots" }, c.tests.map(t => el("span", { class: "dot " + testStatus(t.id), title: t.title })))
+  )));
+}
+
+function renderResult(r) {
+  const parts = [];
+  parts.push(el("p", {}, el("span", { class: "badge " + (r.ok ? "pass" : "fail") }, r.ok ? "통과" : "실패"), `  ${r.seconds}초 걸림`,
+    r.summaryOnly ? "  (이전에 실행한 결과 요약입니다. 출력과 패킷 표를 보려면 다시 실행하세요)" : ""));
+  if (r.error) parts.push(el("div", { class: "error" }, r.error));
+  if (r.checks.length) {
+    parts.push(el("h3", {}, "자동 확인"));
+    parts.push(el("ul", { class: "checks" }, r.checks.map(c => el("li", { class: c.status },
+      el("span", { class: "mark" }, c.status === "pass" ? "✓" : c.status === "warn" ? "!" : "✗"), c.label,
+      c.detail ? el("span", { class: "detail" }, c.detail) : null))));
+    if (r.checks.some(c => c.status === "warn")) parts.push(el("p", { class: "secs" }, "! 표시는 이 네트워크 환경(방화벽 등) 때문에 안 보일 수 있는 항목입니다. 실패로 치지 않습니다."));
+  }
+  if (r.look && r.look.length) {
+    parts.push(el("h3", {}, "결과에서 눈여겨볼 점"));
+    parts.push(el("ul", {}, r.look.map(l => el("li", {}, l))));
+  }
+  for (const t of r.tables || []) {
+    parts.push(el("h3", {}, "📦 " + t.title));
+    parts.push(el("div", { class: "filter" }, "Wireshark 필터: " + t.filter));
+    if (!t.rows.length) { parts.push(el("p", { class: "secs" }, "(맞는 패킷 없음)")); continue; }
+    parts.push(el("div", { class: "table-wrap" }, el("table", {},
+      el("thead", {}, el("tr", {}, t.columns.map(c => el("th", {}, c)))),
+      el("tbody", {}, t.rows.map(row => el("tr", {}, t.columns.map((_, i) => el("td", {}, row[i] ?? ""))))))));
+    if (t.truncated) parts.push(el("p", { class: "secs" }, `… ${t.truncated}개 더 있음`));
+  }
+  if (r.steps && r.steps.length) {
+    parts.push(el("h3", {}, "실행한 명령과 출력"));
+    r.steps.forEach((s, i) => parts.push(el("details", i < 2 ? { open: "" } : {},
+      el("summary", {}, s.label, s.command ? el("span", { class: "cmd" }, "   " + s.command) : null),
+      el("pre", {}, s.output || "(출력 없음)"))));
+  }
+  return parts;
+}
+
+async function runTest(test, button, out) {
+  button.disabled = true;
+  document.querySelectorAll("button.run").forEach(b => b.disabled = true);
+  out.replaceChildren(el("p", {}, `실행 중… 약 ${test.seconds}초 (실습 서버를 띄우고 패킷을 캡처하는 중)`));
+  try {
+    const res = await fetch(`/api/run/${test.id}`, { method: "POST" });
+    const data = await res.json();
+    if (!res.ok) { out.replaceChildren(el("div", { class: "error" }, data.error || res.statusText)); return; }
+    state.results[test.id] = data;
+    save();
+    out.replaceChildren(...renderResult(data));
+    renderNav();
+  } catch (e) {
+    out.replaceChildren(el("div", { class: "error" }, "서버에 연결하지 못했습니다. 터미널에서 server.py가 실행 중인지 확인하세요.\n" + e));
+  } finally {
+    document.querySelectorAll("button.run").forEach(b => b.disabled = false);
+  }
+}
+
+function dissectBox() {
+  const area = el("textarea", { placeholder: "Wireshark에서 패킷 우클릭 → Copy → ...as a Hex Stream 한 값을 붙여 넣으세요" });
+  const link = el("select", {}, el("option", { value: "ethernet" }, "Wi-Fi/이더넷 캡처 (ethernet)"), el("option", { value: "null" }, "loopback 캡처 (null)"));
+  const out = el("div");
+  const btn = el("button", { class: "run", onclick: async () => {
+    btn.disabled = true;
+    try {
+      const res = await fetch("/api/dissect", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ hex: area.value, link: link.value }) });
+      const data = await res.json();
+      out.replaceChildren(data.error ? el("div", { class: "error" }, data.error) : el("pre", {}, data.output));
+    } finally { btn.disabled = false; }
+  } }, "해부하기");
+  return el("div", { class: "box" }, el("h3", {}, "내가 고른 패킷 해부하기"), area, el("p", {}, link, " ", btn), out);
+}
+
+function show(i) {
+  state.current = i;
+  try { localStorage.setItem("web-lab-chapter", String(i)); } catch (e) { /* 무시해도 됨 */ }
+  const c = state.chapters[i];
+  const main = document.getElementById("main");
+  const tests = c.tests.map(t => {
+    const out = el("div");
+    const button = el("button", { class: "run", onclick: () => runTest(t, button, out) }, "실행");
+    if (state.results[t.id]) out.replaceChildren(...renderResult(state.results[t.id]));
+    return el("div", { class: "box" },
+      el("div", { class: "test-head" }, el("h3", {}, t.title), el("span", { class: "secs" }, `약 ${t.seconds}초`), button),
+      el("p", {}, t.description), out);
+  });
+  main.replaceChildren(...[
+    el("h2", {}, `${c.id}. ${c.title}`),
+    el("div", { class: "folder" }, `폴더: ${c.folder}/  ·  자세한 설명과 관찰 기록 칸은 ${c.folder}/README.md`),
+    el("p", { class: "goal" }, c.goal),
+    el("div", { class: "box" }, el("h3", {}, "이 챕터에서 확인하는 것"), el("ul", {}, c.learn.map(l => el("li", {}, l)))),
+    el("h3", {}, "자동 테스트"),
+    el("p", { class: "secs" }, "실행을 누르면 이 PC에서 실습 스크립트를 실제로 돌리고 dumpcap으로 패킷을 잡아 tshark로 해석해 보여 줍니다. 테스트가 띄운 프로그램은 테스트가 끝나면 모두 꺼집니다."),
+    ...tests,
+    c.id === "09" ? dissectBox() : null,
+    el("div", { class: "box" }, el("h3", {}, "직접 해 볼 것 (자동으로 못 하는 부분)"), el("ul", {}, c.manual.map(m => el("li", {}, m)))),
+    el("div", { class: "pager" },
+      i > 0 ? el("button", { class: "nav-btn", onclick: () => show(i - 1) }, `← ${state.chapters[i - 1].id}. ${state.chapters[i - 1].title}`) : el("span"),
+      i < state.chapters.length - 1 ? el("button", { class: "nav-btn", onclick: () => show(i + 1) }, `${state.chapters[i + 1].id}. ${state.chapters[i + 1].title} →`) : el("span")),
+    el("div", { class: "box notice" },
+      el("h3", {}, "다 끝나면 서버를 꺼 주세요"),
+      el("ul", {},
+        el("li", {}, "오른쪽 위 '서버 종료' 버튼, 또는 서버를 실행한 터미널에서 Ctrl+C"),
+        el("li", {}, "종료할 때 실행 중이던 테스트 프로그램과 임시 파일(캡처, TLS 키)을 함께 정리합니다"),
+        el("li", {}, "터미널에 '[web-lab] 종료했습니다.'가 찍히고 프롬프트가 돌아오면 끝. 남은 프로그램 확인 방법은 README의 '종료' 절"))),
+  ].filter(Boolean));
+  renderNav();
+  window.scrollTo(0, 0);
+}
+
+document.getElementById("shutdown").addEventListener("click", async () => {
+  if (!confirm("서버를 종료할까요? 실행 중인 테스트가 있으면 함께 중단됩니다.")) return;
+  let detail = "";
+  try {
+    const res = await fetch("/api/shutdown", { method: "POST" });
+    const data = await res.json();
+    detail = data.killed.length ? `실행 중이던 테스트 프로그램 ${data.killed.length}개를 함께 끝냈습니다.` : "남아 있던 테스트 프로그램은 없었습니다.";
+    if (data.stuck.length) detail += ` 경고: 끝나지 않은 프로그램이 있습니다(PID ${data.stuck.join(", ")}). 보안 프로그램 알림 창에 응답하거나 PC를 재시작하면 정리됩니다.`;
+  } catch (e) {
+    detail = "서버가 이미 꺼져 있었습니다.";
+  }
+  document.getElementById("stopped-detail").textContent = detail + " 터미널에 '[web-lab] 종료했습니다.'가 찍히고 프롬프트가 돌아왔는지 확인하세요.";
+  document.getElementById("stopped").style.display = "flex";
+});
+
+(async () => {
+  const res = await fetch("/api/chapters");
+  state.chapters = await res.json();
+  document.getElementById("status").textContent = `챕터 ${state.chapters.length}개 · 테스트 ${state.chapters.reduce((n, c) => n + c.tests.length, 0)}개`;
+  let start = 0;
+  try { start = Math.min(Number(localStorage.getItem("web-lab-chapter") || 0), state.chapters.length - 1); } catch (e) { start = 0; }
+  show(start);
+})();
+</script>
+</body>
+</html>

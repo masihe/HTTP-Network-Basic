@@ -46,8 +46,10 @@ Npcap은 라이선스 때문에 winget에 없습니다. 공식 사이트에서�
 ### 어댑터 목록
 
 ```powershell
-& "C:\Program Files\Wireshark\tshark.exe" -D
+& "C:\Program Files\Wireshark\dumpcap.exe" -D
 ```
+
+`tshark -D`도 같은 목록을 보여 줍니다. 하지만 tshark는 시작할 때 extcap 보조 도구(`extcap` 폴더의 Udpdump 등)를 모두 한 번씩 실행합니다. 이 PC에서는 그때 V3 알림이 떴습니다(아래 참고). 그래서 여기서는 그런 도구를 실행하지 않는 `dumpcap`을 씁니다.
 
 목록에 다음 두 종류가 보이면 성공입니다.
 - `Adapter for loopback traffic capture`: 01, 02, 04 실습용입니다.
@@ -72,6 +74,24 @@ Npcap은 라이선스 때문에 winget에 없습니다. 공식 사이트에서�
    ```
 
 5. Wireshark에 `[SYN]`, `GET / HTTP/1.1`, `HTTP/1.1 200 OK` 같은 줄이 찍히면 준비가 끝난 것입니다. 웹 서버는 Ctrl+C로 끕니다.
+
+## 보안 프로그램(V3) 알림이 뜨면
+
+이 PC에서는 AhnLab V3가 다음 알림을 띄웠습니다.
+
+- **알림:** "프로그램 실행 알림 - 클라우드 평판과 행위를 기반으로 파일의 실행을 탐지했습니다"
+- **대상:** `C:\Program Files\Wireshark\extcap\Udpdump.exe`
+
+**원인**
+- Udpdump는 다른 장비가 UDP로 보내 주는 패킷을 받는 Wireshark의 보조 도구(extcap)입니다. 이 실습에서는 쓰지 않습니다.
+- Wireshark와 tshark는 시작할 때 extcap 폴더의 도구를 모두 한 번씩 실행해서 쓸 수 있는 캡처 대상을 확인합니다. 이때 V3가 Udpdump 실행을 탐지합니다.
+- 알림 창이 열려 있는 동안 V3는 Udpdump 실행을 붙잡고 기다립니다. 그래서 tshark도 같이 멈추고, 작업 관리자에서도 끝나지 않습니다.
+
+**처리**
+- 알림 창에서 **차단**을 고르고 **확인**을 누릅니다. Udpdump가 없어도 이 실습에는 지장이 없습니다. 확인을 누르면 멈춰 있던 tshark도 풀립니다.
+- **허용**은 고르지 않습니다. 관리되는 PC라면 예외 등록은 관리자에게 요청하는 것이 맞습니다.
+- 웹 테스트(`web-lab`)는 캡처에 dumpcap을 쓰고, tshark에는 빈 extcap 폴더를 지정합니다(`WIRESHARK_EXTCAP_DIR`). 그래서 extcap 도구를 실행하지 않습니다.
+- Wireshark 화면 프로그램을 열 때는 여전히 extcap을 실행하므로 알림이 뜰 수 있습니다. 그때도 차단하면 됩니다.
 
 ## Wireshark 화면 읽는 법 (최소한)
 
