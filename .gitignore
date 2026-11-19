@@ -1,0 +1,8 @@
+# 04 실습에서 curl이 만드는 쿠키 파일
+cookies.txt
+
+# 05 실습의 TLS 키 파일: 이 파일이 있으면 캡처한 HTTPS를 누구나 풀 수 있다
+*.keylog
+sslkeys*.txt
+
+__pycache__/
